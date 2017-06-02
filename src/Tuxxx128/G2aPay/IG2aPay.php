@@ -13,5 +13,5 @@ interface IG2aPay
           CHECKOUT_TEST_URL = 'https://checkout.test.pay.g2a.com';
 
    const REST_PRODUCTION_URL = 'https://pay.g2a.com/rest',
-          REST_TEST_URL = 'https://test.pay.g2a.com/rest'; // missing :-)
+          REST_TEST_URL = 'https://www.test.pay.g2a.com/rest';
 }

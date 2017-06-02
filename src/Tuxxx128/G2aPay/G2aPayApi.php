@@ -7,8 +7,8 @@
 
 namespace Tuxxx128\G2aPay;
 
-class G2aPayApi implements IG2aPay
-{
+class G2aPayApi implements IG2aPay {
+
     /** @var string */
     private $apiHash;
 
@@ -30,7 +30,7 @@ class G2aPayApi implements IG2aPay
     /** @var integer */
     private $totalPrice;
 
-    /** @var string  */
+    /** @var string */
     private $redirectUrlOnGateway;
 
     /** @var string */
@@ -48,9 +48,9 @@ class G2aPayApi implements IG2aPay
     public function __construct($apiHash, $secretKey, $isProduction = false,
                                 $merchantEmail = null)
     {
-        $this->apiHash       = $apiHash;
-        $this->secretKey     = $secretKey;
-        $this->isProduction  = $isProduction;
+        $this->apiHash = $apiHash;
+        $this->secretKey = $secretKey;
+        $this->isProduction = $isProduction;
         $this->merchantEmail = $merchantEmail;
     }
 
@@ -60,7 +60,7 @@ class G2aPayApi implements IG2aPay
      */
     public function checkIsProductionEnvironment()
     {
-        return (boolean) $this->isProduction;
+        return (boolean)$this->isProduction;
     }
 
     /**
@@ -69,7 +69,7 @@ class G2aPayApi implements IG2aPay
      */
     public function checkIsTestEnvironment()
     {
-        return (boolean) !$this->isProduction;
+        return (boolean)!$this->isProduction;
     }
 
     /**
@@ -79,7 +79,8 @@ class G2aPayApi implements IG2aPay
      */
     public function getApIendpointUrl($mode)
     {
-        if ($mode) {
+        if ($mode)
+        {
             return IG2aPay::CHECKOUT_PRODUCTION_URL;
         }
 
@@ -94,7 +95,7 @@ class G2aPayApi implements IG2aPay
     private function calculateOrderHash()
     {
         return hash('sha256',
-            $this->orderId.round($this->totalPrice, 2).$this->currency.$this->secretKey);
+            $this->orderId . round($this->totalPrice, 2) . $this->currency . $this->secretKey);
     }
 
     /**
@@ -105,7 +106,7 @@ class G2aPayApi implements IG2aPay
     public function calculateIpnHash($transactionId, $orderId, $amount)
     {
         return hash('sha256',
-            $transactionId.$orderId.$amount.$this->secretKey);
+            $transactionId . $orderId . $amount . $this->secretKey);
     }
 
     /**
@@ -116,7 +117,7 @@ class G2aPayApi implements IG2aPay
     {
         $authorizeHead = [
             'apiHash' => $this->apiHash,
-            'hash' => hash('sha256', $this->apiHash.$this->merchantEmail.$this->secretKey),
+            'hash'    => hash('sha256', $this->apiHash . $this->merchantEmail . $this->secretKey),
         ];
 
         return $authorizeHead;
@@ -128,8 +129,8 @@ class G2aPayApi implements IG2aPay
      */
     public function getPaymentDetailById($transactionId)
     {
-        return $this->buildAuthorizedHttpRequest('/transactions/'.$transactionId,
-                [], false);
+        return $this->buildAuthorizedHttpRequest('/transactions/' . $transactionId,
+            [], false);
     }
 
     /**
@@ -142,18 +143,26 @@ class G2aPayApi implements IG2aPay
     private function buildAuthorizedHttpRequest($uri, array $fields = [],
                                                 $post = true, array $header = [])
     {
-        $ch  = curl_init();
-        $url = IG2aPay::REST_PRODUCTION_URL;
+        $ch = curl_init();
+        if ($this->checkIsProductionEnvironment())
+        {
+            $url = IG2aPay::REST_PRODUCTION_URL;
+        }
+        else
+        {
+            $url = IG2aPay::REST_TEST_URL;
+        }
 
         // authorized header
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Authorization: '.$this->getAuthorizeHeadFields()['apiHash'].'; '.$this->getAuthorizeHeadFields()['hash'],
-        ] + $header);
+                'Authorization: ' . $this->getAuthorizeHeadFields()['apiHash'] . '; ' . $this->getAuthorizeHeadFields()['hash'],
+            ] + $header);
 
-        curl_setopt($ch, CURLOPT_URL, $url.$uri);
+        curl_setopt($ch, CURLOPT_URL, $url . $uri);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-        if ($post) {
+        if ($post)
+        {
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($fields));
         }
@@ -177,23 +186,24 @@ class G2aPayApi implements IG2aPay
         $ch = curl_init();
 
         $fields = [
-            'api_hash' => $this->apiHash,
-            'order_id' => $this->orderId,
-            'hash' => $this->calculateOrderHash(),
-            'amount' => $this->totalPrice,
-            'currency' => $this->currency,
-            'url_ok' => $this->urlSuccess,
+            'api_hash'    => $this->apiHash,
+            'order_id'    => $this->orderId,
+            'hash'        => $this->calculateOrderHash(),
+            'amount'      => $this->totalPrice,
+            'currency'    => $this->currency,
+            'url_ok'      => $this->urlSuccess,
             'url_failure' => $this->urlFail,
-            'items' => $this->items,
+            'items'       => $this->items,
         ];
 
-        if ($this->email) { // customer email
+        if ($this->email)
+        { // customer email
             $fields['email'] = $this->email;
         }
 
         $url = $this->getApIendpointUrl($this->checkIsProductionEnvironment());
 
-        curl_setopt($ch, CURLOPT_URL, $url.'/index/createQuote');
+        curl_setopt($ch, CURLOPT_URL, $url . '/index/createQuote');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($fields));
@@ -204,11 +214,12 @@ class G2aPayApi implements IG2aPay
 
         $result = json_decode($response);
 
-        if (!isset($result->token)) {
+        if (!isset($result->token))
+        {
             throw new G2aPayException('Something is wrong, returned token is invalid, please check your sent parameters.');
         }
 
-        $this->redirectUrlOnGateway = $url.'/index/gateway?token='.$result->token;
+        $this->redirectUrlOnGateway = $url . '/index/gateway?token=' . $result->token;
 
         return $this->redirectUrlOnGateway;
     }
@@ -284,7 +295,8 @@ class G2aPayApi implements IG2aPay
 
     public function getRedirectUrlOnGateway()
     {
-        if ($this->redirectUrlOnGateway) {
+        if ($this->redirectUrlOnGateway)
+        {
             return $this->redirectUrlOnGateway;
         }
 
