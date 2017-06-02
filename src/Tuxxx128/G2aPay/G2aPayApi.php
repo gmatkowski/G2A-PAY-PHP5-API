@@ -94,7 +94,7 @@ class G2aPayApi implements IG2aPay
     private function calculateOrderHash()
     {
         return hash('sha256',
-            $this->orderId.number_format($this->totalPrice, 2).$this->currency.$this->secretKey);
+            $this->orderId.round($this->totalPrice, 2).$this->currency.$this->secretKey);
     }
 
     /**
